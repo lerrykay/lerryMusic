@@ -68,7 +68,7 @@ export default function UserDashboard() {
       <div className="grid md:grid-cols-3 gap-4">
 
         <div
-          onClick={() => router.push("/chat")}
+          onClick={() => router.push("/explore")}
           className="p-5 bg-white/5 rounded-2xl border border-white/10 cursor-pointer hover:bg-white/10 transition"
         >
           <p className="text-lg">💬</p>
