@@ -3,14 +3,13 @@ import { dbConnect } from "@/app/lib/dbConnect";
 import Song from "@/app/models/song";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/app/lib/jwt";
-import fs from "fs";
-
+import cloudinary from "@/app/lib/cloudinary";
 
 export async function POST(req: Request) {
   try {
     await dbConnect();
 
-
+    // AUTH
     const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
@@ -30,7 +29,7 @@ export async function POST(req: Request) {
       );
     }
 
-
+    // FORM DATA
     const formData = await req.formData();
 
     const title = formData.get("title") as string;
@@ -45,31 +44,71 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🎧 AUDIO SAVE
-    const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
-    const audioName = `${Date.now()}-${audioFile.name}`;
-    const audioPath = `/uploads/audio/${audioName}`;
+    // =========================
+    // AUDIO UPLOAD
+    // =========================
 
-    fs.mkdirSync("./public/uploads/audio", { recursive: true });
-    fs.writeFileSync(`./public${audioPath}`, audioBuffer);
+    const audioBuffer = Buffer.from(
+      await audioFile.arrayBuffer()
+    );
 
+    const audioUpload: any = await new Promise(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              resource_type: "video",
+              folder: "lerrymusic/audio",
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          )
+          .end(audioBuffer);
+      }
+    );
+
+    const audioPath = audioUpload.secure_url;
+
+    // =========================
+    // COVER IMAGE UPLOAD
+    // =========================
 
     let coverPath = "";
 
     if (coverFile) {
-      const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
-      const coverName = `${Date.now()}-${coverFile.name}`;
-      coverPath = `/uploads/covers/${coverName}`;
+      const coverBuffer = Buffer.from(
+        await coverFile.arrayBuffer()
+      );
 
-      fs.mkdirSync("./public/uploads/covers", { recursive: true });
-      fs.writeFileSync(`./public${coverPath}`, coverBuffer);
+      const coverUpload: any = await new Promise(
+        (resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream(
+              {
+                folder: "lerrymusic/covers",
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            )
+            .end(coverBuffer);
+        }
+      );
+
+      coverPath = coverUpload.secure_url;
     }
 
-    
+    // =========================
+    // SAVE SONG
+    // =========================
+
     const song = await Song.create({
       title,
       audioUrl: audioPath,
-      coverImage: coverPath || "", // 🔥 NEW FIELD
+      coverImage: coverPath,
       userId: user.id,
       status: "pending",
       likes: [],
@@ -85,7 +124,10 @@ export async function POST(req: Request) {
     console.log(error);
 
     return NextResponse.json(
-      { success: false, message: "Server error" },
+      {
+        success: false,
+        message: "Server error",
+      },
       { status: 500 }
     );
   }
