@@ -20,12 +20,27 @@ export default function UploadPage() {
     message: "",
   });
 
+
+  const isAudioFile = (f: File | null) => {
+    return f && f.type && f.type.startsWith("audio/");
+  };
+
   const uploadSong = async () => {
     if (!title || !file) {
       setStatus({
         type: "error",
         message: "Please fill all required fields",
       });
+      return;
+    }
+
+
+    if (!isAudioFile(file)) {
+      setStatus({
+        type: "error",
+        message: "Only audio files are allowed",
+      });
+      setFile(null);
       return;
     }
 
@@ -51,20 +66,19 @@ export default function UploadPage() {
       if (data.success) {
         setStatus({
           type: "success",
-          message: "Song uploaded successfully",
+          message:
+            "Song uploaded successfully and is pending admin approval",
         });
 
         setTimeout(() => {
           router.push("/explore");
-        }, 1200);
-
+        }, 1500);
       } else {
         setStatus({
           type: "error",
           message: data.message || "Upload failed",
         });
       }
-
     } catch (error) {
       console.log("UPLOAD ERROR:", error);
 
@@ -72,7 +86,6 @@ export default function UploadPage() {
         type: "error",
         message: "Something went wrong",
       });
-
     } finally {
       setLoading(false);
     }
@@ -81,20 +94,16 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen bg-[#00272c] text-white relative overflow-hidden px-4 py-8 sm:px-6">
 
-      
       <div className="absolute w-100 h-100 bg-[#e1ff51] opacity-10 blur-[140px] rounded-full -top-32 -left-32 pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-2xl mx-auto">
 
-        
         <div className="mb-5">
           <BackButton />
         </div>
 
-        
         <div className="bg-white/5 border border-white/10 rounded-4xl backdrop-blur-xl shadow-2xl overflow-hidden">
 
-        
           <div className="p-6 sm:p-8 border-b border-white/10">
 
             <div className="text-center">
@@ -115,10 +124,8 @@ export default function UploadPage() {
 
           </div>
 
-          
           <div className="p-5 sm:p-8">
 
-          
             {status.type && (
               <div
                 className={`mb-6 p-4 rounded-2xl border text-sm ${
@@ -131,7 +138,7 @@ export default function UploadPage() {
               </div>
             )}
 
-           
+            {/* TITLE */}
             <div className="mb-6">
 
               <label className="block text-sm font-medium mb-3 text-white/70">
@@ -161,7 +168,21 @@ export default function UploadPage() {
                   type="file"
                   accept="audio/*"
                   className="hidden"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] || null;
+
+                    
+                    if (selected && !selected.type.startsWith("audio/")) {
+                      setStatus({
+                        type: "error",
+                        message: "Only audio files are allowed",
+                      });
+                      setFile(null);
+                      return;
+                    }
+
+                    setFile(selected);
+                  }}
                 />
 
                 <div className="p-5 sm:p-6 border border-dashed border-white/20 rounded-3xl bg-white/3 hover:bg-white/6 hover:border-[#e1ff51]/30 transition-all duration-300">
@@ -219,53 +240,33 @@ export default function UploadPage() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] || null;
+
+                    // optional safety
+                    if (selected && !selected.type.startsWith("image/")) {
+                      setStatus({
+                        type: "error",
+                        message: "Only image files allowed for cover",
+                      });
+                      setCoverFile(null);
+                      return;
+                    }
+
+                    setCoverFile(selected);
+                  }}
                 />
 
-                <div className="p-5 sm:p-6 border border-dashed border-white/20 rounded-3xl bg-white/3 hover:bg-white/6 hover:border-[#e1ff51]/30 transition-all duration-300">
+                <div className="p-5 sm:p-6 border border-dashed border-white/20 rounded-3xl bg-white/3">
 
-                  <div className="flex items-center justify-between gap-4">
-
-                    <div className="flex-1 min-w-0">
-
-                      <p className="text-lg font-semibold">
-                        Upload Cover
-                      </p>
-
-                      <p className="text-sm text-white/40 mt-1">
-                        Add artwork for your song
-                      </p>
-
-                    </div>
-
-                    <div className="w-14 h-14 rounded-2xl bg-[#e1ff51]/10 border border-[#e1ff51]/20 flex items-center justify-center text-2xl shrink-0">
-                      🎨
-                    </div>
-
-                  </div>
+                  <p className="text-sm text-white/40">
+                    Upload Cover Image (optional)
+                  </p>
 
                   {coverFile && (
-                    <div className="mt-5">
-
-                      <div className="p-4 rounded-2xl bg-[#e1ff51]/10 border border-[#e1ff51]/20 mb-4">
-
-                        <p className="text-xs text-white/50 mb-1">
-                          Selected Cover
-                        </p>
-
-                        <p className="text-sm text-[#e1ff51] truncate font-medium">
-                          {coverFile.name}
-                        </p>
-
-                      </div>
-
-                      <img
-                        src={URL.createObjectURL(coverFile)}
-                        alt="cover preview"
-                        className="w-full h-52 sm:h-64 object-cover rounded-2xl border border-white/10"
-                      />
-
-                    </div>
+                    <p className="text-[#e1ff51] text-sm mt-2">
+                      {coverFile.name}
+                    </p>
                   )}
 
                 </div>
@@ -274,21 +275,17 @@ export default function UploadPage() {
 
             </div>
 
-            
             <button
               onClick={uploadSong}
               disabled={loading}
-              className="w-full bg-[#e1ff51] text-black py-4 rounded-2xl font-bold text-sm sm:text-base hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#e1ff51]/20"
+              className="w-full bg-[#e1ff51] text-black py-4 rounded-2xl font-bold"
             >
               {loading ? "Uploading..." : "Upload Song"}
             </button>
 
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

@@ -72,7 +72,7 @@ export default function UserDashboard() {
           className="p-5 bg-white/5 rounded-2xl border border-white/10 cursor-pointer hover:bg-white/10 transition"
         >
           <p className="text-lg">💬</p>
-          <p className="font-semibold mt-2">Chat Users</p>
+          <p className="font-semibold mt-2">Explore</p>
           <p className="text-xs text-white/40">Connect with others</p>
         </div>
 

@@ -20,10 +20,15 @@ const genres = [
 
 export default function SignupForm() {
   const [image, setImage] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
+
+  const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+
     if (!file) return;
 
     try {
@@ -38,10 +43,21 @@ export default function SignupForm() {
     <div className="flex justify-center items-center">
       <div className="w-full max-w-md p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
 
-        {/* TITLE */}
         <h1 className="text-center text-2xl font-bold text-white mb-6">
           Create Account 🎵
         </h1>
+
+        {message && (
+          <div className="mb-4 p-3 rounded-xl bg-[#e1ff51] text-black text-sm font-medium">
+            {message}
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="mb-4 p-3 rounded-xl bg-red-500 text-white text-sm font-medium">
+            {errorMessage}
+          </div>
+        )}
 
         <Formik
           initialValues={{
@@ -65,8 +81,11 @@ export default function SignupForm() {
           onSubmit={async (values, { resetForm }) => {
             setLoading(true);
 
+            setMessage("");
+            setErrorMessage("");
+
             try {
-              await signupUser({
+              const response = await signupUser({
                 firstName: values.firstName,
                 lastName: values.lastName,
                 email: values.email,
@@ -77,10 +96,20 @@ export default function SignupForm() {
                 profileImage: image || "",
               });
 
+              if (!response.success) {
+                setErrorMessage(response.message);
+                return;
+              }
+
+              setMessage("Account created successfully");
+
               resetForm();
               setImage(null);
+
             } catch (error) {
               console.error(error);
+
+              setErrorMessage("Something went wrong");
             } finally {
               setLoading(false);
             }
@@ -89,12 +118,14 @@ export default function SignupForm() {
           {({ handleChange, handleSubmit }) => (
             <form onSubmit={handleSubmit} className="space-y-4">
 
-              
               <div className="flex flex-col items-center mb-2">
 
                 <div className="w-24 h-24 rounded-full border border-[#e1ff51]/40 bg-white/5 overflow-hidden flex items-center justify-center shadow-md">
                   {image ? (
-                    <img src={image} className="w-full h-full object-cover" />
+                    <img
+                      src={image}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <span className="text-white/40 text-xs">
                       Upload Photo
@@ -110,7 +141,6 @@ export default function SignupForm() {
                 />
               </div>
 
-            
               <div className="grid grid-cols-2 gap-3">
 
                 <input
@@ -158,21 +188,24 @@ export default function SignupForm() {
                 className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white outline-none focus:border-[#e1ff51] transition"
               />
 
-              
               <select
                 name="genre"
                 onChange={handleChange}
                 className="w-full p-3 bg-white/5 border border-white/10 text-white rounded-lg outline-none focus:border-[#e1ff51] transition"
               >
                 <option value="">Select Favorite Genre</option>
+
                 {genres.map((g) => (
-                  <option key={g} value={g} className="bg-[#00272c]">
+                  <option
+                    key={g}
+                    value={g}
+                    className="bg-[#00272c]"
+                  >
                     {g}
                   </option>
                 ))}
               </select>
 
-            
               <button
                 type="submit"
                 disabled={loading}

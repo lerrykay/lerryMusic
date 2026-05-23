@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   try {
     await dbConnect();
 
-    // AUTH
+    
     const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
@@ -29,11 +29,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // FORM DATA
+   
     const formData = await req.formData();
 
     const title = formData.get("title") as string;
-
     const audioFile = formData.get("file") as File;
     const coverFile = formData.get("cover") as File | null;
 
@@ -44,67 +43,62 @@ export async function POST(req: Request) {
       );
     }
 
-    // =========================
-    // AUDIO UPLOAD
-    // =========================
+   
+    
+    if (!audioFile.type.startsWith("audio/")) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only audio files are allowed",
+        },
+        { status: 400 }
+      );
+    }
 
-    const audioBuffer = Buffer.from(
-      await audioFile.arrayBuffer()
-    );
+  
+    const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 
-    const audioUpload: any = await new Promise(
-      (resolve, reject) => {
+    const audioUpload: any = await new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            resource_type: "video",
+            folder: "lerrymusic/audio",
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        )
+        .end(audioBuffer);
+    });
+
+    const audioPath = audioUpload.secure_url;
+
+   
+    let coverPath = "";
+
+    if (coverFile) {
+      const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
+
+      const coverUpload: any = await new Promise((resolve, reject) => {
         cloudinary.uploader
           .upload_stream(
             {
-              resource_type: "video",
-              folder: "lerrymusic/audio",
+              folder: "lerrymusic/covers",
             },
             (error, result) => {
               if (error) reject(error);
               else resolve(result);
             }
           )
-          .end(audioBuffer);
-      }
-    );
-
-    const audioPath = audioUpload.secure_url;
-
-    // =========================
-    // COVER IMAGE UPLOAD
-    // =========================
-
-    let coverPath = "";
-
-    if (coverFile) {
-      const coverBuffer = Buffer.from(
-        await coverFile.arrayBuffer()
-      );
-
-      const coverUpload: any = await new Promise(
-        (resolve, reject) => {
-          cloudinary.uploader
-            .upload_stream(
-              {
-                folder: "lerrymusic/covers",
-              },
-              (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-              }
-            )
-            .end(coverBuffer);
-        }
-      );
+          .end(coverBuffer);
+      });
 
       coverPath = coverUpload.secure_url;
     }
 
-    // =========================
-    // SAVE SONG
-    // =========================
-
+    
     const song = await Song.create({
       title,
       audioUrl: audioPath,
@@ -117,11 +111,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      message: "Song uploaded successfully and pending approval",
       song,
     });
 
   } catch (error) {
-    console.log(error);
+    console.log("UPLOAD ERROR:", error);
 
     return NextResponse.json(
       {

@@ -91,3 +91,39 @@ export async function sendWelcomeEmail(
     `,
   });
 }
+
+
+export async function sendSongApprovedEmail(
+  email: string,
+  firstName: string,
+  songTitle: string
+) {
+  await transporter.sendMail({
+    from: `"Music by Lerry" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "🎉 Your song has been approved!",
+
+    html: `
+      <div style="background:#00272c;padding:40px;color:white;font-family:Arial">
+
+        <h1 style="color:#e1ff51;">
+          Congratulations ${firstName} 🎵
+        </h1>
+
+        <p style="color:#d1d5db;font-size:16px;line-height:1.8">
+          Your song <b>${songTitle}</b> has been approved by admin
+          and is now live on Music by Lerry.
+        </p>
+
+        <div style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.05);border-radius:12px;">
+          You can now share it with the world 🌍
+        </div>
+
+        <p style="margin-top:30px;color:#9ca3af;font-size:13px">
+          — Music by Lerry Team
+        </p>
+
+      </div>
+    `,
+  });
+}
